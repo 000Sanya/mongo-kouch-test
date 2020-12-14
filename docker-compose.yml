@@ -1,0 +1,21 @@
+version: '3.1'
+
+services:
+  mongo:
+    image: "mongo:4.2.6"
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: dbadmin
+      MONGO_INITDB_ROOT_PASSWORD: dbadmin
+    ports:
+      - "27017:27017"
+
+  couchdb:
+    image: "couchdb:3.1.1"
+    environment:
+      COUCHDB_USER: dbadmin
+      COUCHDB_PASSWORD: dbadmin
+    ports:
+      - "5984:5984"
+    volumes:
+      - "./couch.ini:/opt/couchdb/etc/local.d/docker.ini"
