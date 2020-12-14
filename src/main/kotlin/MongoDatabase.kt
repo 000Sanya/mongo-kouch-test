@@ -1,21 +1,29 @@
-import org.litote.kmongo.coroutine.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import org.litote.kmongo.coroutine.CoroutineClient
+import org.litote.kmongo.coroutine.CoroutineCollection
+import org.litote.kmongo.coroutine.CoroutineDatabase
 
 class MongoDatabase(
     private val client: CoroutineClient,
     private val database: CoroutineDatabase = client.getDatabase("speed"),
     private val collection: CoroutineCollection<TestEntity> = database.getCollection<TestEntity>(),
-): Database<TestEntity> {
+) : Database<TestEntity> {
     override suspend fun create(item: TestEntity) {
         collection.insertOne(item)
     }
 
-    override suspend fun create(range: Iterable<TestEntity>, bulk: Boolean) {
-        if (bulk) {
-            collection.insertMany(range.toList())
-        } else {
-            for (item in range) {
-                collection.insertOne(item)
-            }
+    override suspend fun create(range: Iterable<TestEntity>, bulk: Database.Bulk) {
+        when (bulk) {
+            Database.Bulk.SEQUENTIAL -> range.forEach { create(it) }
+            Database.Bulk.BULK -> collection.insertMany(range.toList())
+            Database.Bulk.PARALLEL -> range
+                .map { item ->
+                    GlobalScope.launch {
+                        create(item)
+                    }
+                }
+                .forEach { it.join() }
         }
     }
 

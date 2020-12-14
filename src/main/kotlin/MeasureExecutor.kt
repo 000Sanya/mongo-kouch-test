@@ -1,22 +1,23 @@
 import kotlin.system.measureTimeMillis
 
-class MeasureExecutor (
+class MeasureExecutor(
     private val dbs: Map<String, Database<TestEntity>>
 ) {
     suspend fun createNAndGet(n: Long) {
         val entities = (0..n).map { TestEntity.randomEntity() }
-        for ((name, db) in dbs) {
-            db.reset()
-            val woBulk = measureTimeMillis {
-                db.create(entities, false)
-            }
 
-            db.reset()
-            val wBulk = measureTimeMillis {
-                db.create(entities, true)
-            }
+        println("Inserting $n entities")
 
-            println("$name Insert w/o bulk: $woBulk; With: $wBulk")
+        Database.Bulk.values().forEach { bulkMode ->
+            dbs.forEach { (dbName, db) ->
+                db.reset()
+                val time = measureTimeMillis {
+                    db.create(entities, bulkMode)
+                }
+                println("$dbName: Insert mode: $bulkMode; With: ${time}ms")
+            }
         }
+
+
     }
 }

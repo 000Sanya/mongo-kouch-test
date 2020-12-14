@@ -1,3 +1,6 @@
+import com.mongodb.ConnectionString
+import com.mongodb.MongoClientSettings
+import com.mongodb.WriteConcern
 import kotlinx.coroutines.runBlocking
 import kouch.Context
 import kouch.DatabaseName
@@ -8,23 +11,31 @@ import org.litote.kmongo.reactivestreams.KMongo
 
 fun main(args: Array<String>) {
     val kouchDatabase = KouchDatabase(
-        KouchClientImpl(Context(
-            Settings(
-                host = "::1",
-                adminName = "dbadmin",
-                adminPassword = "dbadmin",
-                databaseNaming = Settings.DatabaseNaming.Predefined(DatabaseName("defaultdb"))
+        KouchClientImpl(
+            Context(
+                Settings(
+                    host = "::1",
+                    adminName = "dbadmin",
+                    adminPassword = "dbadmin",
+                    databaseNaming = Settings.DatabaseNaming.Predefined(DatabaseName("defaultdb"))
+                )
             )
-        ))
+        )
     )
     val mongoDatabase = MongoDatabase(
-        KMongo.createClient("mongodb://dbadmin:dbadmin@[::1]:27017").coroutine
+        KMongo.createClient(
+            MongoClientSettings
+                .builder()
+                .applyConnectionString(ConnectionString("mongodb://dbadmin:dbadmin@[::1]:27017"))
+                .writeConcern(WriteConcern.JOURNALED)
+                .build()
+        ).coroutine
     )
 
     val executor = MeasureExecutor(
         mapOf(
-            "kouch" to kouchDatabase,
             "mongo" to mongoDatabase,
+            "kouch" to kouchDatabase,
         )
     )
 

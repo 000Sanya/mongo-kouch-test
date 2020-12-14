@@ -1,3 +1,5 @@
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kouch.KouchClient
 import kouch.getMetadata
 
@@ -8,15 +10,17 @@ class KouchDatabase(
         kouch.doc.insert(item, TestEntity::class)
     }
 
-    override suspend fun create(range: Iterable<TestEntity>, bulk: Boolean) {
-        if (bulk) {
-            kouch.db.bulkUpsert(
-                range
-            )
-        } else {
-            for (item in range) {
-                create(item)
-            }
+    override suspend fun create(range: Iterable<TestEntity>, bulk: Database.Bulk) {
+        when (bulk) {
+            Database.Bulk.SEQUENTIAL -> range.forEach { create(it) }
+            Database.Bulk.BULK -> kouch.db.bulkUpsert(range)
+            Database.Bulk.PARALLEL -> range
+                .map { item ->
+                    GlobalScope.launch {
+                        create(item)
+                    }
+                }
+                .forEach { it.join() }
         }
     }
 
