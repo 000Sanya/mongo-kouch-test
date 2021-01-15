@@ -10,36 +10,64 @@ import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.reactivestreams.KMongo
 
 fun main(args: Array<String>) {
-    val kouchDatabase = KouchDatabase(
-        KouchClientImpl(
-            Context(
-                Settings(
-                    host = "::1",
-                    adminName = "dbadmin",
-                    adminPassword = "dbadmin",
-                    databaseNaming = Settings.DatabaseNaming.Predefined(DatabaseName("defaultdb"))
+    try {
+        val kouchDatabase = KouchDatabase(
+            KouchClientImpl(
+                Context(
+                    Settings(
+                        host = "::1",
+                        adminName = "dbadmin",
+                        adminPassword = "dbadmin",
+                        databaseNaming = Settings.DatabaseNaming.Predefined(DatabaseName("defaultdb"))
+                    )
                 )
             )
         )
-    )
-    val mongoDatabase = MongoDatabase(
-        KMongo.createClient(
-            MongoClientSettings
-                .builder()
-                .applyConnectionString(ConnectionString("mongodb://dbadmin:dbadmin@[::1]:27017"))
-                .writeConcern(WriteConcern.JOURNALED)
-                .build()
-        ).coroutine
-    )
-
-    val executor = MeasureExecutor(
-        mapOf(
-            "mongo" to mongoDatabase,
-            "kouch" to kouchDatabase,
+        val kouchClusterDatabase = KouchDatabase(
+            KouchClientImpl(
+                Context(
+                    Settings(
+                        host = "::1",
+                        adminName = "dbadmin",
+                        adminPassword = "dbadmin",
+                        port = 10010,
+                        databaseNaming = Settings.DatabaseNaming.Predefined(DatabaseName("defaultdb"))
+                    )
+                )
+            )
         )
-    )
+        val mongoDatabase = MongoDatabase(
+            KMongo.createClient(
+                MongoClientSettings
+                    .builder()
+                    .applyConnectionString(ConnectionString("mongodb://dbadmin:dbadmin@localhost:27017"))
+                    .writeConcern(WriteConcern.JOURNALED)
+                    .build()
+            ).coroutine
+        )
+        val mongoCluserDatabase = MongoDatabase(
+            KMongo.createClient(
+                MongoClientSettings
+                    .builder()
+                    .applyConnectionString(ConnectionString("mongodb://192.168.112.1:27011,192.168.112.1:27012,192.168.112.1:27013/?replicaSet=rs0"))
+                    .writeConcern(WriteConcern.W2.withJournal(true))
+                    .build()
+            ).coroutine
+        )
 
-    runBlocking {
-        executor.createNAndGet(1000)
+        val executor = MeasureExecutor(
+            mapOf(
+                "mongo(single)" to mongoDatabase,
+                "mongo(3 nodes, W2)" to mongoCluserDatabase,
+                "kouch(single)" to kouchDatabase,
+                "kouch(3 nodes, default)" to kouchClusterDatabase,
+            )
+        )
+
+        runBlocking {
+            executor.createNAndGet(10000)
+        }
+    } catch (e: Exception) {
+        println(e)
     }
 }

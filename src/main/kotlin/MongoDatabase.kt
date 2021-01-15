@@ -1,3 +1,4 @@
+import com.mongodb.client.model.Filters
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.litote.kmongo.coroutine.CoroutineClient
@@ -33,5 +34,19 @@ class MongoDatabase(
 
     override suspend fun reset() {
         collection.drop()
+    }
+
+    override suspend fun get(range: Iterable<TestEntity>, bulk: Database.Bulk) {
+        when (bulk) {
+            Database.Bulk.SEQUENTIAL -> range.forEach { getById(it.id) }
+            Database.Bulk.BULK -> collection.find(Filters.`in`("_id", range.map { it.id })).toList()
+            Database.Bulk.PARALLEL -> range
+                .map { item ->
+                    GlobalScope.launch {
+                        getById(item.id)
+                    }
+                }
+                .forEach { it.join() }
+        }
     }
 }

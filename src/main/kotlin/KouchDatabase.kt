@@ -36,4 +36,18 @@ class KouchDatabase(
         kouch.db.create(dbName)
     }
 
+    override suspend fun get(range: Iterable<TestEntity>, bulk: Database.Bulk) {
+        when (bulk) {
+            Database.Bulk.SEQUENTIAL -> range.forEach { getById(it.id) }
+            Database.Bulk.BULK -> kouch.db.bulkGet<TestEntity>(range.map { it.id })
+            Database.Bulk.PARALLEL -> range
+                .map { item ->
+                    GlobalScope.launch {
+                        getById(item.id)
+                    }
+                }
+                .forEach { it.join() }
+        }
+    }
+
 }

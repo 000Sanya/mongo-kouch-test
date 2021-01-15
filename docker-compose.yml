@@ -12,9 +12,93 @@ services:
   couchdb:
     image: "couchdb:3.1.1"
     environment:
-      COUCHDB_USER: dbadmin
-      COUCHDB_PASSWORD: dbadmin
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
     ports:
       - "5984:5984"
     volumes:
       - "./couch.ini:/opt/couchdb/etc/local.d/docker.ini"
+
+
+  mongo_cluster1:
+    hostname: mongo1
+    container_name: localmongo1
+    image: mongo:4.2.6
+    expose:
+      - 27017
+    restart: always
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0" ]
+    ports:
+      - "27011:27017"
+  mongo_cluster2:
+    hostname: mongo2
+    container_name: localmongo2
+    image: mongo:4.2.6
+    expose:
+      - 27017
+    restart: always
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0" ]
+    ports:
+      - "27012:27017"
+  mongo_cluster3:
+    hostname: mongo3
+    container_name: localmongo3
+    image: mongo:4.2.6
+    expose:
+      - 27017
+    restart: always
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0" ]
+    ports:
+      - "27013:27017"
+
+  couchdb-0:
+    restart: always
+    hostname: couchdb-0.${COMPOSE_PROJECT_NAME}
+    container_name: couchdb-0.${COMPOSE_PROJECT_NAME}
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+      COUCHDB_SECRET: ${COUCHDB_SECRET}
+      NODENAME: couchdb-0.${COMPOSE_PROJECT_NAME}
+      ERL_FLAGS: "-setcookie ${COUCHDB_COOKIE} -kernel inet_dist_listen_min 9100 -kernel inet_dist_listen_max 9100"
+    image: "couchdb:3.1.1"
+    expose:
+      - 5984
+      - 4369
+      - 9100
+    ports:
+      - "${PORT_BASE}0:5984"
+  couchdb-1:
+    restart: always
+    hostname: couchdb-1.${COMPOSE_PROJECT_NAME}
+    container_name: couchdb-1.${COMPOSE_PROJECT_NAME}
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+      COUCHDB_SECRET: ${COUCHDB_SECRET}
+      NODENAME: couchdb-1.${COMPOSE_PROJECT_NAME}
+      ERL_FLAGS: "-setcookie ${COUCHDB_COOKIE} -kernel inet_dist_listen_min 9100 -kernel inet_dist_listen_max 9100"
+    image: "couchdb:3.1.1"
+    expose:
+      - 5984
+      - 4369
+      - 9100
+    ports:
+      - "${PORT_BASE}1:5984"
+  couchdb-2:
+    restart: always
+    hostname: couchdb-2.${COMPOSE_PROJECT_NAME}
+    container_name: couchdb-2.${COMPOSE_PROJECT_NAME}
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+      COUCHDB_SECRET: ${COUCHDB_SECRET}
+      NODENAME: couchdb-2.${COMPOSE_PROJECT_NAME}
+      ERL_FLAGS: "-setcookie ${COUCHDB_COOKIE} -kernel inet_dist_listen_min 9100 -kernel inet_dist_listen_max 9100"
+    image: "couchdb:3.1.1"
+    expose:
+      - 5984
+      - 4369
+      - 9100
+    ports:
+      - "${PORT_BASE}2:5984"
